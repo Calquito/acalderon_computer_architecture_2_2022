@@ -45,6 +45,7 @@ class Table:
                 self.labels.append(self.e)
 
     def update(self):
+        print(len(self.labels))
         for i in self.labels:
             i.config(text=str(clock))
 
@@ -62,16 +63,17 @@ total_rows = len(lst)
 total_columns = len(lst[0])
 ######################################################################  
 
+frame = Frame(root)
+frame.pack()
+t = Table(frame)
 
 def update_gui():
-    frame = Frame(root)
-    frame.pack()
-    t = Table(frame)
     time.sleep(1)
-    frame.destroy()
-    #print("jhdnfkjdwnfjhdsnfkdshfjdnsfkdshfdsjfndskjfbds")
+    t.update()
     update_gui()
+    #print("jhdnfkjdwnfjhdsnfkdshfjdnsfkdshfdsjfndskjfbds")
     
+#update_gui()   
 
 
 #create processor threads
