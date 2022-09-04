@@ -75,7 +75,6 @@ def update_gui():
     
 #update_gui()   
 
-
 #create processor threads
 clock_control = Thread(target=timer)
 cpu1 = Thread(target=processor)
