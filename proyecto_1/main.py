@@ -1,21 +1,28 @@
 from tkinter import *
 from threading import Thread
 import time
+from turtle import right
 from gui import *
 
 
 
-#global variables
+#############################################################global variables########################################################3
 clock=0
-l1_1=[0,0,0,0]
-l1_2=[0,0,0,0]
-l1_3=[0,0,0,0]
-l1_4=[0,0,0,0]
-main_memory=[0,0,0,0,0,0,0,0]
 
-cache_matrix=[l1_1,l1_2,l1_3,l1_4]
-main_memory_matrix=[main_memory]
 
+
+#Lists require to be in a matrix to be put on the table
+#L1,L2,L3,L4
+cache_matrix=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+#Main memory
+main_memory_matrix=[[0,0,0,0,0,0,0,0]]
+#Processor and its last instruction
+processor_matrix=[['Procesador 1','P0 : READ 0100'],['Procesador 2',''],['Procesador 3',''],['Procesador 4','']]
+#Last instruction
+last_instruction=''
+
+
+######################################################################################################################################
 #controls the clock
 def timer():
     while(True):
@@ -76,15 +83,15 @@ root = Tk()
 ######################################################################
 class Table:
      
-    def __init__(self,root,data_matrix):
+    def __init__(self,root,data_matrix,width):
         self.labels=[]
+        self.width=width
         self.data_matrix=data_matrix
         # code for creating table
         for i in range(len(data_matrix)):
             self.labels.append([])
             for j in range(len(data_matrix[0])):
-                self.e = Label(root, width=20, text=data_matrix[i][j])
-                #self.e = Label(root, width=20, text="dsdd")
+                self.e = Label(root, width=self.width, text=data_matrix[i][j],  borderwidth=2, relief="groove")
                 self.e.grid(row=i, column=j)
                 self.labels[i].append(self.e)
 
@@ -95,12 +102,43 @@ class Table:
 
 ######################################################################  
 
-frame = Frame(root)
-frame.pack()
-frame2= Frame(root)
-frame2.pack()
-cache_table_GUI = Table(frame,cache_matrix)
-main_memory_table_GUI= Table(frame2,main_memory_matrix)
+#position frames of the tables
+
+#labels of processor and cache
+frame_processor_cache = Frame(root)
+frame_processor_cache.pack(side=TOP)
+
+frame_labels1 = Frame(frame_processor_cache)
+frame_labels1 .pack(side=TOP)
+label1=Label(frame_labels1 , width=20, text='Procesador')
+label2=Label(frame_labels1 , width=20, text='Última instrucción')
+label3=Label(frame_labels1 , width=20, text='Bloque 0')
+label4=Label(frame_labels1 , width=20, text='Bloque 1')
+label5=Label(frame_labels1 , width=20, text='Bloque 2')
+label6=Label(frame_labels1 , width=20, text='Bloque 3')
+label1.pack(side = LEFT)
+label2.pack(side = LEFT)
+label3.pack(side = LEFT)
+label4.pack(side = LEFT)
+label5.pack(side = LEFT)
+label6.pack(side = LEFT)
+
+
+frame_cache = Frame(frame_processor_cache)
+frame_cache.pack(side=RIGHT)
+frame_procesador=Frame(frame_processor_cache)
+frame_procesador.pack(side=LEFT)
+
+
+
+frame_main= Frame(root)
+frame_main.pack()
+
+
+#create tables in frames
+cache_table_GUI = Table(frame_cache,cache_matrix,20)
+processor_table_GUI = Table(frame_procesador,processor_matrix,20)
+main_memory_table_GUI= Table(frame_main,main_memory_matrix,15)
 
 # Code to add widgets will go here...
 root.mainloop()
