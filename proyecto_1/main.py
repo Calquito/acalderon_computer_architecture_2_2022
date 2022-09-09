@@ -40,7 +40,7 @@ def processor():
         for j in range(len(cache_matrix[0])):
             cache_matrix[i][j]=cache_matrix[i][j]+2
     time.sleep(3)
-    print(cache_matrix)
+    #print(cache_matrix)
     processor()
             
     
@@ -104,7 +104,7 @@ class Table:
 
 #position frames of the tables
 
-#labels of processor and cache
+#labels of processor and cache (superior frame)
 frame_processor_cache = Frame(root)
 frame_processor_cache.pack(side=TOP)
 
@@ -129,10 +129,24 @@ frame_cache.pack(side=RIGHT)
 frame_procesador=Frame(frame_processor_cache)
 frame_procesador.pack(side=LEFT)
 
+#Frame of main memory and last instruction
 
+frame_main_instruction= Frame(root)
+frame_main_instruction.pack()
 
-frame_main= Frame(root)
+label7=Label(frame_main_instruction , text='Memoria principal')
+label7.pack(pady=5)
+
+frame_main= Frame(frame_main_instruction)
 frame_main.pack()
+
+#just for space
+label8=Label(frame_main_instruction , text='')
+label8.pack(pady=5)
+
+label9=Label(frame_main_instruction , text='Última instrucción generada por el sistema:'+last_instruction)
+label9.pack(pady=5,side=LEFT)
+
 
 
 #create tables in frames
