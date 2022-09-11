@@ -1,4 +1,4 @@
-from filecmp import clear_cache
+from ast import In
 from tkinter import *
 from threading import Thread
 import time
@@ -20,59 +20,80 @@ processor_matrix=[['Procesador 0',''],['Procesador 1',''],['Procesador 2',''],['
 #Last instruction
 last_instruction=''
 
-
+#temporal_mode
+paso_a_paso=False
 ######################################################################################################################################
 
 #processor class
 
 class Processor:
-    def __init__(self,number):
+    def __init__(self,number,pressed_next_cicle):
         self.number=number
+        self.pressed_next_cicle=pressed_next_cicle
     def generate_instruction(self):
-        while(True):
+        #Clock cicle
+        if not paso_a_paso:
             time.sleep(clock_time)
-            #generate random instruction
-            instruction_p=random.randint(0,100)
-            self.current_instruction= 'P'+str(self.number)+':'
+        self.pressed_next_cicle=False
 
-            #CALC
-            if(instruction_p<33):
-                self.current_instruction+= "CALC"
-            #READ
-            elif(instruction_p<66):
-                read_direction=random.randint(0,15)
-                read_direction_binary=bin(read_direction)
-                self.current_instruction+= " READ "+read_direction_binary[2:]
+        #generate random instruction
+        instruction_p=random.randint(0,100)
+        self.current_instruction= 'P'+str(self.number)+':'
 
-            #WRITE
-            else:
-                write_direction=random.randint(0,15)
-                write_direction_binary=bin(write_direction)
-                #max hex data
-                data=random.randint(0,65535)
-                data_hex=hex(data)
-                #remove 0b and 0x
-                self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
+        #CALC
+        if(instruction_p<33):
+            self.current_instruction+= "CALC"
+        #READ
+        elif(instruction_p<66):
+            read_direction=random.randint(0,15)
+            read_direction_binary=bin(read_direction)
+            self.current_instruction+= " READ "+read_direction_binary[2:]
 
-            #update processors matrix
-            processor_matrix[self.number][1]=self.current_instruction
-            processor_table_GUI.data_matrix=processor_matrix
-            processor_table_GUI.update()
- 
-            #update cache matrix
-            cache_matrix[1][3]=cache_matrix[1][3]+2
-            cache_table_GUI.data_matrix=cache_matrix
-            cache_table_GUI.update()
+        #WRITE
+        else:
+            write_direction=random.randint(0,15)
+            write_direction_binary=bin(write_direction)
+            #max hex data
+            data=random.randint(0,65535)
+            data_hex=hex(data)
+            #remove 0b and 0x
+            self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
+
+        #update processors matrix
+        processor_matrix[self.number][1]=self.current_instruction
+        processor_table_GUI.data_matrix=processor_matrix
+        processor_table_GUI.update()
+
+        #update cache matrix
+        cache_matrix[1][3]=cache_matrix[1][3]+2
+        cache_table_GUI.data_matrix=cache_matrix
+        cache_table_GUI.update()
+
+        #update last instruction
+        last_instruction=self.current_instruction
+        label9.config(text='Última instrucción generada por el sistema:'+last_instruction)
+
+        #recursive
+        if paso_a_paso:
+            while(paso_a_paso):
+                #avoid infinite loop to take resources
+                time.sleep(1)
+                print(self.pressed_next_cicle)
+                if(self.pressed_next_cicle):
+                    break
+        self.generate_instruction()
+
+
             
             
 
 
 
 #create processor instances
-cpu0= Processor(0)
-cpu1= Processor(1)
-cpu2= Processor(2)
-cpu3= Processor(3)
+cpu0= Processor(0,False)
+cpu1= Processor(1,False)
+cpu2= Processor(2,False)
+cpu3= Processor(3,False)
 
 
 
@@ -81,10 +102,31 @@ cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
+
+
 cpu0_thread.start()
 cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
+
+#change temporal mode
+def temporal_mode():
+    global paso_a_paso
+    paso_a_paso= not paso_a_paso
+    print(paso_a_paso)
+    if (paso_a_paso):
+        mode_button.config(text="Modo ejecución continua")
+    else:
+        mode_button.config(text="Modo paso a paso")
+    
+#execute next cicle in "paso a paso" mode
+def execute_next_cicle(e):
+    print("dsa")
+    cpu0.pressed_next_cicle=True
+    cpu1.pressed_next_cicle=True
+    cpu2.pressed_next_cicle=True
+    cpu3.pressed_next_cicle=True
+
 
 
 ####################################################################GUI####################################################################
@@ -157,15 +199,23 @@ frame_main.pack()
 label8=Label(frame_main_instruction , text='')
 label8.pack(pady=5)
 
+#last instruction generated
 label9=Label(frame_main_instruction , text='Última instrucción generada por el sistema:'+last_instruction)
 label9.pack(pady=5,side=LEFT)
 
+#mode button
+mode_button=Button(frame_main_instruction, text= "Modo paso a paso", command=temporal_mode,width=20)
+mode_button.pack(pady=5,padx=5,side=RIGHT)
 
 
 #create tables in frames
 cache_table_GUI = Table(frame_cache,cache_matrix,20)
 processor_table_GUI = Table(frame_procesador,processor_matrix,20)
 main_memory_table_GUI= Table(frame_main,main_memory_matrix,15)
+
+#When enter pressed, change cicle
+
+root.bind('<Return>',execute_next_cicle)
 
 # Code to add widgets will go here...
 
