@@ -32,15 +32,27 @@ class Processor:
         while(True):
             time.sleep(clock_time)
             #generate random instruction
-            p=random.randint(0,100)
+            instruction_p=random.randint(0,100)
             self.current_instruction= 'P'+str(self.number)+':'
 
-            if(p<33):
+            #CALC
+            if(instruction_p<33):
                 self.current_instruction+= "CALC"
-            elif(p<66):
-                self.current_instruction+= "READ"
+            #READ
+            elif(instruction_p<66):
+                read_direction=random.randint(0,15)
+                read_direction_binary=bin(read_direction)
+                self.current_instruction+= " READ "+read_direction_binary[2:]
+
+            #WRITE
             else:
-                self.current_instruction+= "WRITE"
+                write_direction=random.randint(0,15)
+                write_direction_binary=bin(write_direction)
+                #max hex data
+                data=random.randint(0,65535)
+                data_hex=hex(data)
+                #remove 0b and 0x
+                self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
 
             #update processors matrix
             processor_matrix[self.number][1]=self.current_instruction
@@ -56,7 +68,7 @@ class Processor:
 
 
 
-
+#create processor instances
 cpu0= Processor(0)
 cpu1= Processor(1)
 cpu2= Processor(2)
@@ -69,8 +81,6 @@ cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
-
-
 cpu0_thread.start()
 cpu1_thread.start()
 cpu2_thread.start()
