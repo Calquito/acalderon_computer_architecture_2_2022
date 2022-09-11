@@ -1,12 +1,12 @@
+from filecmp import clear_cache
 from tkinter import *
 from threading import Thread
 import time
-from gui import *
-
+import random
 
 
 #############################################################global variables########################################################3
-clock=0
+clock_time=3
 
 
 
@@ -16,7 +16,7 @@ cache_matrix=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
 #Main memory
 main_memory_matrix=[[0,0,0,0,0,0,0,0]]
 #Processor and its last instruction
-processor_matrix=[['Procesador 0','P0 : READ 0100'],['Procesador 1',''],['Procesador 2',''],['Procesador 3','']]
+processor_matrix=[['Procesador 0',''],['Procesador 1',''],['Procesador 2',''],['Procesador 3','']]
 #Last instruction
 last_instruction=''
 
@@ -29,10 +29,31 @@ class Processor:
     def __init__(self,number):
         self.number=number
     def generate_instruction(self):
-        while (True):
+        while(True):
+            time.sleep(clock_time)
+            #generate random instruction
+            p=random.randint(0,100)
+            self.current_instruction= 'P'+str(self.number)+':'
+
+            if(p<33):
+                self.current_instruction+= "CALC"
+            elif(p<66):
+                self.current_instruction+= "READ"
+            else:
+                self.current_instruction+= "WRITE"
+
+            #update processors matrix
+            processor_matrix[self.number][1]=self.current_instruction
+            processor_table_GUI.data_matrix=processor_matrix
+            processor_table_GUI.update()
+ 
+            #update cache matrix
             cache_matrix[1][3]=cache_matrix[1][3]+2
-            #update_GUI()
-            time.sleep(3)
+            cache_table_GUI.data_matrix=cache_matrix
+            cache_table_GUI.update()
+            
+            
+
 
 
 
@@ -42,25 +63,19 @@ cpu2= Processor(2)
 cpu3= Processor(3)
 
 
-def clock():
-    while(True):
-        time.sleep(3)
-        cache_table_GUI.data_matrix=cache_matrix
-        cache_table_GUI.update()
-
 
 #create processor threads
 cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
-clock = Thread(target=clock)
+
 
 cpu0_thread.start()
 cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
-clock.start()
+
 
 ####################################################################GUI####################################################################
 
