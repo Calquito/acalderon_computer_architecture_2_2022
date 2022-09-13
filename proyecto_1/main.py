@@ -41,6 +41,16 @@ class Processor:
         self.processor_number=processor_number
         self.pressed_next_cicle=pressed_next_cicle
         self.cache=cache
+    
+    def write(self,direction,data):
+        data=data+2
+
+    def read(self,direction):
+        direction=2
+
+    def calc(self):
+        return True
+
     def generate_instruction(self):
         #Clock cicle
         if not paso_a_paso:
@@ -54,21 +64,24 @@ class Processor:
         #CALC
         if(instruction_p<33):
             self.current_instruction+= "CALC"
+            self.calc()
         #READ
         elif(instruction_p<66):
             read_direction=random.randint(0,15)
             read_direction_binary=bin(read_direction)
             self.current_instruction+= " READ "+read_direction_binary[2:]
+            self.read(read_direction)
 
         #WRITE
         else:
             write_direction=random.randint(0,15)
             write_direction_binary=bin(write_direction)
             #max hex data
-            data=random.randint(0,65535)
+            data=random.randint(0,65536)
             data_hex=hex(data)
             #remove 0b and 0x
             self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
+            self.write(write_direction,data)
 
         #update processors matrix
         processor_matrix[self.processor_number][1]=self.current_instruction
@@ -139,6 +152,10 @@ def execute_next_cicle(e):
     cpu1.pressed_next_cicle=True
     cpu2.pressed_next_cicle=True
     cpu3.pressed_next_cicle=True
+
+
+def MESI(block_number,processor,direction,data):
+    d=2
 
 
 
