@@ -1,4 +1,3 @@
-from ast import In
 from tkinter import *
 from threading import Thread
 import time
@@ -12,24 +11,36 @@ clock_time=3
 
 #Lists require to be in a matrix to be put on the table
 #L1,L2,L3,L4
-cache_matrix=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+
+cache_initial_state='I   |   0   |   0'
+cache_matrix=[['','','',''],['','','',''],['','','',''],['','','','']]
+
+for i in range(len(cache_matrix)):
+    for j in range(len(cache_matrix[0])):
+        cache_matrix[i][j]=cache_initial_state
+
 #Main memory
 main_memory_matrix=[[0,0,0,0,0,0,0,0]]
 #Processor and its last instruction
 processor_matrix=[['Procesador 0',''],['Procesador 1',''],['Procesador 2',''],['Procesador 3','']]
+
+#variables shared by the system
 #Last instruction
 last_instruction=''
 
 #temporal_mode
 paso_a_paso=False
+
+using_memory_bus=False
 ######################################################################################################################################
 
 #processor class
 
 class Processor:
-    def __init__(self,number,pressed_next_cicle):
-        self.number=number
+    def __init__(self,processor_number,pressed_next_cicle,cache):
+        self.processor_number=processor_number
         self.pressed_next_cicle=pressed_next_cicle
+        self.cache=cache
     def generate_instruction(self):
         #Clock cicle
         if not paso_a_paso:
@@ -38,7 +49,7 @@ class Processor:
 
         #generate random instruction
         instruction_p=random.randint(0,100)
-        self.current_instruction= 'P'+str(self.number)+':'
+        self.current_instruction= 'P'+str(self.processor_number)+':'
 
         #CALC
         if(instruction_p<33):
@@ -60,27 +71,30 @@ class Processor:
             self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
 
         #update processors matrix
-        processor_matrix[self.number][1]=self.current_instruction
+        processor_matrix[self.processor_number][1]=self.current_instruction
         processor_table_GUI.data_matrix=processor_matrix
         processor_table_GUI.update()
 
+
         #update cache matrix
-        cache_matrix[1][3]=cache_matrix[1][3]+2
+        self.cache[3][2]+=2
+
+        for i in range(4):
+            cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(self.cache[i][1])+'   |   '+str(self.cache[i][2])
         cache_table_GUI.data_matrix=cache_matrix
         cache_table_GUI.update()
+
 
         #update last instruction
         last_instruction=self.current_instruction
         label9.config(text='Última instrucción generada por el sistema:'+last_instruction)
 
         #recursive
-        if paso_a_paso:
-            while(paso_a_paso):
-                #avoid infinite loop to take resources
-                time.sleep(1)
-                print(self.pressed_next_cicle)
-                if(self.pressed_next_cicle):
-                    break
+        while(paso_a_paso):
+            #avoid infinite loop to take resources
+            time.sleep(1)
+            if(self.pressed_next_cicle):
+                break
         self.generate_instruction()
 
 
@@ -90,10 +104,11 @@ class Processor:
 
 
 #create processor instances
-cpu0= Processor(0,False)
-cpu1= Processor(1,False)
-cpu2= Processor(2,False)
-cpu3= Processor(3,False)
+#number of processor, paso a paso, matrix: state, memory direction, data
+cpu0= Processor(0,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
+cpu1= Processor(1,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
+cpu2= Processor(2,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
+cpu3= Processor(3,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
 
 
 
@@ -113,7 +128,6 @@ cpu3_thread.start()
 def temporal_mode():
     global paso_a_paso
     paso_a_paso= not paso_a_paso
-    print(paso_a_paso)
     if (paso_a_paso):
         mode_button.config(text="Modo ejecución continua")
     else:
@@ -121,7 +135,6 @@ def temporal_mode():
     
 #execute next cicle in "paso a paso" mode
 def execute_next_cicle(e):
-    print("dsa")
     cpu0.pressed_next_cicle=True
     cpu1.pressed_next_cicle=True
     cpu2.pressed_next_cicle=True
