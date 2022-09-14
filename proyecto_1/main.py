@@ -5,8 +5,8 @@ import random
 
 
 #############################################################global variables########################################################3
-clock_time=3
-
+clock_time=2
+going_to_memory_time=10
 
 
 #Lists require to be in a matrix to be put on the table
@@ -43,13 +43,44 @@ class Processor:
         self.cache=cache
     
     def write(self,direction,data):
-        data=data+2
+        #check if data is in memory
+        write_hit=False
+        hit_block_number=0
+        new_state=''
+
+
+        for i in range(len(self.cache)):
+            if self.cache[i][1]==direction:
+                write_hit==True
+                hit_block_number=i
+                break
+        
+        new_state=MESI('write',self.cache[hit_block_number][0])
+        
+        if (write_hit):
+            self.cache[hit_block_number][2]=data
+            
+        #write miss
+        else:
+            #waits for the bus to be free
+            while(using_memory_bus):
+                time.sleep(1)
+                pass
+            #now memory bus is free
+            main_memory_matrix[0][direction]=data
+            #one way associative
+            self.cache[direction%4]=[new_state,direction,data]
+
+        invalidate_blocks(self.processor_number,direction)
+
+
 
     def read(self,direction):
         direction=2
 
     def calc(self):
         return True
+
 
     def generate_instruction(self):
         #Clock cicle
@@ -90,12 +121,14 @@ class Processor:
 
 
         #update cache matrix
-        self.cache[3][2]+=2
-
         for i in range(4):
             cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(self.cache[i][1])+'   |   '+str(self.cache[i][2])
         cache_table_GUI.data_matrix=cache_matrix
         cache_table_GUI.update()
+
+        #update main memory data:
+        main_memory_table_GUI.data_matrix=main_memory_matrix
+        main_memory_table_GUI.update()
 
 
         #update last instruction
@@ -111,7 +144,12 @@ class Processor:
         self.generate_instruction()
 
 
-            
+
+
+def controller():
+    while(True):
+        time.sleep(1)
+
             
 
 
@@ -124,18 +162,19 @@ cpu2= Processor(2,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
 cpu3= Processor(3,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
 
 
-
 #create processor threads
 cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
+controller_thread=Thread(target=cpu3.controller)
 
 
 cpu0_thread.start()
 cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
+controller_thread.start()
 
 #change temporal mode
 def temporal_mode():
@@ -154,8 +193,19 @@ def execute_next_cicle(e):
     cpu3.pressed_next_cicle=True
 
 
-def MESI(block_number,processor,direction,data):
-    d=2
+#return new state
+def MESI(instruction,state):
+    if(instruction=="write"):
+        #all states return to M in write
+        return 'M'
+
+#invalidate blocks
+def invalidate_blocks(processor_number,direction):
+    for i in range(4):
+        d=3
+
+
+    
 
 
 
