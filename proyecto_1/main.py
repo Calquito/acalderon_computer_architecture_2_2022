@@ -203,6 +203,38 @@ def MESI(instruction,state):
     if(instruction=="write"):
         #all states return to M in write
         return 'M'
+    elif(state=='S' and instruction=='read'):
+        return 'S'
+    elif(state=='M' and (instruction=='read' or instruction=='write')):
+        return 'M'
+    elif(state=='M' and instruction=='veo_wr'):
+        #writeback
+        return 'I'
+    elif(state=='M' and instruction=='veo_wr'):
+        #writeback
+        return 'S'
+    elif(state=='I' and instruction=='read'):
+        return 'S'
+    elif (state=='S' and instruction=='veo_wr'):
+        return 'I'
+    elif(state=='I' and instruction=='read'):
+        return 'E'
+    elif(state=='E' and instruction=='read'):
+        return 'E'
+    elif(state=='E' and instruction=='veo_read'):
+        return 'S'
+    elif(state=='E' and instruction=='veo_wr'):
+        return 'I'
+    else:
+        return state
+    
+
+    
+    
+    
+    
+
+    
 
 #invalidate blocks
 def invalidate_blocks(processor_number,direction):
