@@ -98,20 +98,20 @@ class Processor:
             self.calc()
         #READ
         elif(instruction_p<66):
-            read_direction=random.randint(0,15)
+            read_direction=random.randint(0,7)
             read_direction_binary=bin(read_direction)
-            self.current_instruction+= " READ "+read_direction_binary[2:]
+            self.current_instruction+= " READ "+read_direction_binary
             self.read(read_direction)
 
         #WRITE
         else:
-            write_direction=random.randint(0,15)
+            write_direction=random.randint(0,7)
             write_direction_binary=bin(write_direction)
             #max hex data
             data=random.randint(0,65536)
             data_hex=hex(data)
             #remove 0b and 0x
-            self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
+            self.current_instruction+= " WRITE "+write_direction_binary+" ; "+ data_hex
             self.write(write_direction,data)
 
         #update processors matrix
@@ -122,12 +122,16 @@ class Processor:
 
         #update cache matrix
         for i in range(4):
-            cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(self.cache[i][1])+'   |   '+str(self.cache[i][2])
+            cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(bin(self.cache[i][1]))+'   |   '+str(hex(self.cache[i][2]))
         cache_table_GUI.data_matrix=cache_matrix
         cache_table_GUI.update()
 
         #update main memory data:
-        main_memory_table_GUI.data_matrix=main_memory_matrix
+        main_memory_matrix_hex=[[]]
+        for i in range(len(main_memory_matrix[0])):
+            main_memory_matrix_hex[0].append(hex(main_memory_matrix[0][i]))
+
+        main_memory_table_GUI.data_matrix=main_memory_matrix_hex
         main_memory_table_GUI.update()
 
 
@@ -167,7 +171,7 @@ cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
-controller_thread=Thread(target=cpu3.controller)
+controller_thread=Thread(target=controller)
 
 
 cpu0_thread.start()
@@ -175,6 +179,7 @@ cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
 controller_thread.start()
+
 
 #change temporal mode
 def temporal_mode():
@@ -201,8 +206,24 @@ def MESI(instruction,state):
 
 #invalidate blocks
 def invalidate_blocks(processor_number,direction):
-    for i in range(4):
-        d=3
+    if(cpu0.processor_number != processor_number):
+        for i in range(4):
+            if cpu0.cache[i][1]==direction:
+                cpu0.cache[i][0]='I'
+    if(cpu1.processor_number != processor_number):
+        for i in range(4):
+            if cpu0.cache[i][1]==direction:
+                cpu0.cache[i][0]='I'
+    if(cpu1.processor_number != processor_number):
+        for i in range(4):
+            if cpu0.cache[i][1]==direction:
+                cpu0.cache[i][0]='I'
+    if(cpu1.processor_number != processor_number):
+        for i in range(4):
+            if cpu0.cache[i][1]==direction:
+                cpu0.cache[i][0]='I'
+
+    
 
 
     
