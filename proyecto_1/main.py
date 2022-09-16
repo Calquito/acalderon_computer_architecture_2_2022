@@ -183,22 +183,22 @@ def check_caches(processor_number,direction):
     if(cpu0.processor_number != processor_number):
         for i in range(4):
             #if found the data, return it and in the provider the new state is shared
-            if cpu0.cache[i][1]==direction:
+            if(cpu0.cache[i][1]==direction):
                 cpu0.cache[i][0]='S'
                 return(True,cpu0.cache[i][2])
-    elif(cpu1.processor_number != processor_number):
+    if(cpu1.processor_number != processor_number):
         for i in range(4):
-            if cpu1.cache[i][1]==direction:
+            if (cpu1.cache[i][1]==direction):
                 cpu1.cache[i][0]='S'
                 return(True,cpu1.cache[i][2])
-    elif(cpu2.processor_number != processor_number):
+    if(cpu2.processor_number != processor_number):
         for i in range(4):
-            if cpu2.cache[i][1]==direction:
+            if (cpu2.cache[i][1]==direction):
                 cpu2.cache[i][0]='S'
                 return(True,cpu2.cache[i][2])
-    elif(cpu3.processor_number != processor_number):
+    if(cpu3.processor_number != processor_number):
         for i in range(4):
-            if cpu3.cache[i][1]==direction:
+            if (cpu3.cache[i][1]==direction):
                 cpu3.cache[i][0]='S'
                 return(True,cpu3.cache[i][2])
 
