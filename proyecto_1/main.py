@@ -1,3 +1,4 @@
+from tabnanny import check
 from tkinter import *
 from threading import Thread
 import time
@@ -45,20 +46,18 @@ class Processor:
     def write(self,direction,data):
         #check if data is in memory
         write_hit=False
-        hit_block_number=0
         new_state=''
+        hit_block_number=None
 
-
-        for i in range(len(self.cache)):
-            if self.cache[i][1]==direction:
-                write_hit==True
-                hit_block_number=i
-                break
-        
-        new_state=MESI('write',self.cache[hit_block_number][0])
+        #one way associative
+        if self.cache[direction%4][1]==direction:
+            write_hit==True
+            hit_block_number=direction%4
+                
         
         if (write_hit):
-            self.cache[hit_block_number][2]=data
+            new_state=MESI('write',self.cache[hit_block_number][0])
+            self.cache[direction%4]=[new_state,direction,data]
             
         #write miss
         else:
@@ -68,18 +67,72 @@ class Processor:
                 pass
             #now memory bus is free
             main_memory_matrix[0][direction]=data
+            #block doesn't exist in cache, so assume I
+            new_state=MESI('write','I')
             #one way associative
             self.cache[direction%4]=[new_state,direction,data]
 
-        invalidate_blocks(self.processor_number,direction)
+        controller('write',self.processor_number,direction)
 
 
 
     def read(self,direction):
-        direction=2
+        #check if data is in memory
+        read_hit=False
+        new_state=''
+        hit_block_number=None
+
+        #one way associative
+        if self.cache[direction%4][1]==direction:
+            read_hit==True
+            hit_block_number=direction%4
+
+
+        if (read_hit):
+            new_state=MESI('read',self.cache[hit_block_number][0])
+            self.cache[direction%4]=[new_state,direction,self.cache[direction%4][2]]
+
+        #go to other caches
+        #check_cache returns tuple with boolean that indicates if the data is in other cache, and the data if true
+        cache_checked=check_caches(self.processor_number,direction)
+        print("##################################################################################################")
+        print(cache_checked)
+        if(cache_checked[0]):
+            self.cache[direction%4]=['S',direction,cache_checked[1]]
+
+    
+
+        #ir a memoria
+        
 
     def calc(self):
         return True
+
+    def update_GUI_after_instruction(self):
+        #update processors matrix
+        processor_matrix[self.processor_number][1]=self.current_instruction
+        processor_table_GUI.data_matrix=processor_matrix
+        processor_table_GUI.update()
+
+
+        #update cache matrix
+        for i in range(4):
+            cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(bin(self.cache[i][1]))+'   |   '+str(hex(self.cache[i][2]))
+        cache_table_GUI.data_matrix=cache_matrix
+        cache_table_GUI.update()
+
+        #update main memory data:
+        main_memory_matrix_hex=[[]]
+        for i in range(len(main_memory_matrix[0])):
+            main_memory_matrix_hex[0].append(hex(main_memory_matrix[0][i]))
+
+        main_memory_table_GUI.data_matrix=main_memory_matrix_hex
+        main_memory_table_GUI.update()
+
+
+        #update last instruction
+        last_instruction=self.current_instruction
+        label9.config(text='Última instrucción generada por el sistema:'+last_instruction)
 
 
     def generate_instruction(self):
@@ -114,30 +167,7 @@ class Processor:
             self.current_instruction+= " WRITE "+write_direction_binary+" ; "+ data_hex
             self.write(write_direction,data)
 
-        #update processors matrix
-        processor_matrix[self.processor_number][1]=self.current_instruction
-        processor_table_GUI.data_matrix=processor_matrix
-        processor_table_GUI.update()
-
-
-        #update cache matrix
-        for i in range(4):
-            cache_matrix[self.processor_number][i]=self.cache[i][0]+'   |   '+str(bin(self.cache[i][1]))+'   |   '+str(hex(self.cache[i][2]))
-        cache_table_GUI.data_matrix=cache_matrix
-        cache_table_GUI.update()
-
-        #update main memory data:
-        main_memory_matrix_hex=[[]]
-        for i in range(len(main_memory_matrix[0])):
-            main_memory_matrix_hex[0].append(hex(main_memory_matrix[0][i]))
-
-        main_memory_table_GUI.data_matrix=main_memory_matrix_hex
-        main_memory_table_GUI.update()
-
-
-        #update last instruction
-        last_instruction=self.current_instruction
-        label9.config(text='Última instrucción generada por el sistema:'+last_instruction)
+        self.update_GUI_after_instruction()
 
         #recursive
         while(paso_a_paso):
@@ -149,10 +179,35 @@ class Processor:
 
 
 
+def check_caches(processor_number,direction):
+    if(cpu0.processor_number != processor_number):
+        for i in range(4):
+            #if found the data, return it and in the provider the new state is shared
+            if cpu0.cache[i][1]==direction:
+                cpu0.cache[i][0]='S'
+                return(True,cpu0.cache[i][2])
+    elif(cpu1.processor_number != processor_number):
+        for i in range(4):
+            if cpu1.cache[i][1]==direction:
+                cpu1.cache[i][0]='S'
+                return(True,cpu1.cache[i][2])
+    elif(cpu2.processor_number != processor_number):
+        for i in range(4):
+            if cpu2.cache[i][1]==direction:
+                cpu2.cache[i][0]='S'
+                return(True,cpu2.cache[i][2])
+    elif(cpu3.processor_number != processor_number):
+        for i in range(4):
+            if cpu3.cache[i][1]==direction:
+                cpu3.cache[i][0]='S'
+                return(True,cpu3.cache[i][2])
 
-def controller():
-    while(True):
-        time.sleep(1)
+    return(False,0)
+
+
+def controller(instruction,processor_number,direction):
+    if(instruction=='write'):
+        invalidate_blocks(processor_number,direction)
 
             
 
@@ -171,15 +226,12 @@ cpu0_thread = Thread(target=cpu0.generate_instruction)
 cpu1_thread = Thread(target=cpu1.generate_instruction)
 cpu2_thread = Thread(target=cpu2.generate_instruction)
 cpu3_thread = Thread(target=cpu3.generate_instruction)
-controller_thread=Thread(target=controller)
 
 
 cpu0_thread.start()
 cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
-controller_thread.start()
-
 
 #change temporal mode
 def temporal_mode():
@@ -213,8 +265,6 @@ def MESI(instruction,state):
     elif(state=='M' and instruction=='veo_wr'):
         #writeback
         return 'S'
-    elif(state=='I' and instruction=='read'):
-        return 'S'
     elif (state=='S' and instruction=='veo_wr'):
         return 'I'
     elif(state=='I' and instruction=='read'):
@@ -242,18 +292,22 @@ def invalidate_blocks(processor_number,direction):
         for i in range(4):
             if cpu0.cache[i][1]==direction:
                 cpu0.cache[i][0]='I'
+                break
     if(cpu1.processor_number != processor_number):
         for i in range(4):
-            if cpu0.cache[i][1]==direction:
-                cpu0.cache[i][0]='I'
-    if(cpu1.processor_number != processor_number):
+            if cpu1.cache[i][1]==direction:
+                cpu1.cache[i][0]='I'
+                break
+    if(cpu2.processor_number != processor_number):
         for i in range(4):
-            if cpu0.cache[i][1]==direction:
-                cpu0.cache[i][0]='I'
-    if(cpu1.processor_number != processor_number):
+            if cpu2.cache[i][1]==direction:
+                cpu2.cache[i][0]='I'
+                break
+    if(cpu3.processor_number != processor_number):
         for i in range(4):
-            if cpu0.cache[i][1]==direction:
-                cpu0.cache[i][0]='I'
+            if cpu3.cache[i][1]==direction:
+                cpu3.cache[i][0]='I'
+                break
 
     
 
