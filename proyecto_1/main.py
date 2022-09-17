@@ -24,7 +24,8 @@ class Processor:
             write_hit==True
             hit_block_number=direction%4
                 
-        
+        #transition 2
+        #transition 3
         if (write_hit):
             new_state=MESI('write',self.cache[hit_block_number][0])
             self.cache[direction%4]=[new_state,direction,data]
@@ -49,6 +50,8 @@ class Processor:
         current_state=self.cache[direction%4][0]
 
         #one way associative
+        #transition 1
+        #transition 2
         if(self.cache[direction%4][1]==direction and current_state!='I'): #States M,S and E can read infinitely
             read_hit==True
             hit_block_number=direction%4
@@ -57,18 +60,20 @@ class Processor:
         #check_cache returns tuple with boolean that indicates if the data is in other cache, and the data if true
         #if false, go to main memory
         if (read_hit):
+            #transition 6 (without E)
             new_state=MESI('read',self.cache[hit_block_number][0])
             self.cache[direction%4]=[new_state,direction,self.cache[direction%4][2]]
             #if read hit, exit
             return True
 
         #fetch from other cache if true, if false go to memory
-        cache_checked=veo_rd(self.processor_number,direction)
-        if(cache_checked):
+        cache_checked=controller('read',self.processor_number,direction)
+        if(cache_checked[0]):
             #veo_rd
-            self.cache[direction%4]=['S',direction,read_from_memory(direction)]
+            #transition 9
+            self.cache[direction%4]=['S',direction,cache_checked[1]]
         else:
-            self.cache[direction%4]=['M',direction,read_from_memory(direction)]
+            self.cache[direction%4]=['E',direction,read_from_memory(direction)]
 
 
 
@@ -170,39 +175,45 @@ def write_to_memory(direction,data):
         using_memory_bus=False
 
 
-def veo_rd(processor_number,direction):
+def check_caches_read(processor_number,direction):
     if(cpu0.processor_number != processor_number):
         for i in range(4):
             #if found the data, return it and in the provider the new state is shared
             if(cpu0.cache[i][1]==direction and cpu0.cache[i][0]!='I'):
-                cpu0.cache[i][0]='S'
-                write_to_memory(direction,cpu0.cache[i][2])
-                return True
+                #veo_rd
+                cpu0.cache[i][0]=MESI('veo_rd',cpu0.cache[i][0])
+                return (True,cpu0.cache[i][2])
     if(cpu1.processor_number != processor_number):
         for i in range(4):
             if (cpu1.cache[i][1]==direction and cpu1.cache[i][0]!='I' ):
-                cpu1.cache[i][0]='S'
-                write_to_memory(direction,cpu1.cache[i][2])
-                return True
+                cpu1.cache[i][0]=MESI('veo_rd',cpu1.cache[i][0])
+                return (True,cpu1.cache[i][2])
     if(cpu2.processor_number != processor_number):
         for i in range(4):
             if (cpu2.cache[i][1]==direction and cpu2.cache[i][0]!='I'):
-                cpu2.cache[i][0]='S'
-                write_to_memory(direction,cpu2.cache[i][2])
-                return True
+                cpu2.cache[i][0]=MESI('veo_rd',cpu2.cache[i][0])
+                return (True,cpu2.cache[i][2])
     if(cpu3.processor_number != processor_number):
         for i in range(4):
             if (cpu3.cache[i][1]==direction and cpu3.cache[i][0]!='I'):
-                cpu3.cache[i][0]='S'
-                write_to_memory(direction,cpu3.cache[i][2])
-                return True
+                cpu3.cache[i][0]=MESI('veo_rd',cpu3.cache[i][0])
+                return (True,cpu3.cache[i][2])
 
     return(False,0)
 
 
 def controller(instruction,processor_number,direction):
     if(instruction=='write'):
+        #veo_wr
+        #transition 4
+        #transition 7
+        #transition 8
         invalidate_blocks(processor_number,direction)
+        return None
+    elif(instruction=='read'):
+        #veo_rd
+        #transition 5
+        return check_caches_read(processor_number,direction)
 
             
 
@@ -260,6 +271,10 @@ def MESI(instruction,state):
         return 'E'
     elif(state=='E' and instruction=='read'):
         return 'E'
+    elif(state=='M' and instruction=='veo_rd'):
+        return 'S'
+    elif(state=='I' and instruction=='veo_rd'):
+        return 'S'
     elif(state=='E' and instruction=='veo_rd'):
         return 'S'
     elif(state=='E' and instruction=='veo_wr'):
@@ -269,6 +284,7 @@ def MESI(instruction,state):
     
    
 #invalidate blocks
+#processor number is the processor that is invalidating
 def invalidate_blocks(processor_number,direction):
     if(cpu0.processor_number != processor_number):
         for i in range(4):
