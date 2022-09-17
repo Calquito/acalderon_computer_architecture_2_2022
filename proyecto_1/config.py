@@ -6,12 +6,12 @@ going_to_memory_time=10
 #Lists require to be in a matrix to be put on the table
 #L1,L2,L3,L4
 
-cache_initial_state='I   |   0   |   0'
 cache_matrix=[['','','',''],['','','',''],['','','',''],['','','','']]
 
+#fills cache with initial states
 for i in range(len(cache_matrix)):
     for j in range(len(cache_matrix[0])):
-        cache_matrix[i][j]=cache_initial_state
+        cache_matrix[i][j]='I   |   '+str(j)+'   |   0'
 
 #Main memory
 main_memory_matrix=[[0,0,0,0,0,0,0,0]]

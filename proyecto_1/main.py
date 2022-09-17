@@ -151,6 +151,7 @@ class Processor:
 
 
 def read_from_memory(direction):
+    global using_memory_bus
     #waits for the bus to be free
     while(using_memory_bus):
         time.sleep(1)
@@ -164,15 +165,16 @@ def read_from_memory(direction):
     return data
 
 def write_to_memory(direction,data):
-        #waits for the bus to be free
-        while(using_memory_bus):
-            time.sleep(1)
-            pass
-        #now memory bus is free
-        using_memory_bus=True
-        time.sleep(going_to_memory_time)
-        main_memory_matrix[0][direction]=data
-        using_memory_bus=False
+    global using_memory_bus
+    #waits for the bus to be free
+    while(using_memory_bus):
+        time.sleep(1)
+        pass
+    #now memory bus is free
+    using_memory_bus=True
+    time.sleep(going_to_memory_time)
+    main_memory_matrix[0][direction]=data
+    using_memory_bus=False
 
 
 def check_caches_read(processor_number,direction):
@@ -214,7 +216,8 @@ def controller(instruction,processor_number,direction):
         #veo_rd
         #transition 5
         return check_caches_read(processor_number,direction)
-
+    else:
+        return None
             
 
 
@@ -262,7 +265,7 @@ def MESI(instruction,state):
     elif(state=='M' and instruction=='veo_wr'):
         #writeback
         return 'I'
-    elif(state=='M' and instruction=='veo_wr'):
+    elif(state=='M' and instruction=='veo_rd'):
         #writeback
         return 'S'
     elif (state=='S' and instruction=='veo_wr'):
@@ -271,8 +274,6 @@ def MESI(instruction,state):
         return 'E'
     elif(state=='E' and instruction=='read'):
         return 'E'
-    elif(state=='M' and instruction=='veo_rd'):
-        return 'S'
     elif(state=='I' and instruction=='veo_rd'):
         return 'S'
     elif(state=='E' and instruction=='veo_rd'):
