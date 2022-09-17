@@ -1,39 +1,9 @@
-from tabnanny import check
-from tkinter import *
 from threading import Thread
 import time
 import random
-
-
-#############################################################global variables########################################################3
-clock_time=2
-going_to_memory_time=10
-
-
-#Lists require to be in a matrix to be put on the table
-#L1,L2,L3,L4
-
-cache_initial_state='I   |   0   |   0'
-cache_matrix=[['','','',''],['','','',''],['','','',''],['','','','']]
-
-for i in range(len(cache_matrix)):
-    for j in range(len(cache_matrix[0])):
-        cache_matrix[i][j]=cache_initial_state
-
-#Main memory
-main_memory_matrix=[[0,0,0,0,0,0,0,0]]
-#Processor and its last instruction
-processor_matrix=[['Procesador 0',''],['Procesador 1',''],['Procesador 2',''],['Procesador 3','']]
-
-#variables shared by the system
-#Last instruction
-last_instruction=''
-
-#temporal_mode
-paso_a_paso=False
-
-using_memory_bus=False
-######################################################################################################################################
+from config import *
+from tkinter import *
+from GUI_Table import Table
 
 #processor class
 
@@ -61,12 +31,7 @@ class Processor:
             
         #write miss
         else:
-            #waits for the bus to be free
-            while(using_memory_bus):
-                time.sleep(1)
-                pass
-            #now memory bus is free
-            main_memory_matrix[0][direction]=data
+            write_to_memory(direction,data)
             #block doesn't exist in cache, so assume I
             new_state=MESI('write','I')
             #one way associative
@@ -81,29 +46,31 @@ class Processor:
         read_hit=False
         new_state=''
         hit_block_number=None
+        current_state=self.cache[direction%4][0]
 
         #one way associative
-        if self.cache[direction%4][1]==direction:
+        if(self.cache[direction%4][1]==direction and current_state!='I'): #States M,S and E can read infinitely
             read_hit==True
             hit_block_number=direction%4
 
-
+        #go to other caches
+        #check_cache returns tuple with boolean that indicates if the data is in other cache, and the data if true
+        #if false, go to main memory
         if (read_hit):
             new_state=MESI('read',self.cache[hit_block_number][0])
             self.cache[direction%4]=[new_state,direction,self.cache[direction%4][2]]
+            #if read hit, exit
+            return True
 
-        #go to other caches
-        #check_cache returns tuple with boolean that indicates if the data is in other cache, and the data if true
-        cache_checked=check_caches(self.processor_number,direction)
-        print("##################################################################################################")
-        print(cache_checked)
-        if(cache_checked[0]):
-            self.cache[direction%4]=['S',direction,cache_checked[1]]
+        #fetch from other cache if true, if false go to memory
+        cache_checked=veo_rd(self.processor_number,direction)
+        if(cache_checked):
+            #veo_rd
+            self.cache[direction%4]=['S',direction,read_from_memory(direction)]
+        else:
+            self.cache[direction%4]=['M',direction,read_from_memory(direction)]
 
-    
 
-        #ir a memoria
-        
 
     def calc(self):
         return True
@@ -178,29 +145,57 @@ class Processor:
         self.generate_instruction()
 
 
+def read_from_memory(direction):
+    #waits for the bus to be free
+    while(using_memory_bus):
+        time.sleep(1)
+        pass
+    #now memory bus is free
+    using_memory_bus=True
+    data=''
+    time.sleep(going_to_memory_time)
+    data=main_memory_matrix[0][direction]
+    using_memory_bus=False
+    return data
 
-def check_caches(processor_number,direction):
+def write_to_memory(direction,data):
+        #waits for the bus to be free
+        while(using_memory_bus):
+            time.sleep(1)
+            pass
+        #now memory bus is free
+        using_memory_bus=True
+        time.sleep(going_to_memory_time)
+        main_memory_matrix[0][direction]=data
+        using_memory_bus=False
+
+
+def veo_rd(processor_number,direction):
     if(cpu0.processor_number != processor_number):
         for i in range(4):
             #if found the data, return it and in the provider the new state is shared
-            if(cpu0.cache[i][1]==direction):
+            if(cpu0.cache[i][1]==direction and cpu0.cache[i][0]!='I'):
                 cpu0.cache[i][0]='S'
-                return(True,cpu0.cache[i][2])
+                write_to_memory(direction,cpu0.cache[i][2])
+                return True
     if(cpu1.processor_number != processor_number):
         for i in range(4):
-            if (cpu1.cache[i][1]==direction):
+            if (cpu1.cache[i][1]==direction and cpu1.cache[i][0]!='I' ):
                 cpu1.cache[i][0]='S'
-                return(True,cpu1.cache[i][2])
+                write_to_memory(direction,cpu1.cache[i][2])
+                return True
     if(cpu2.processor_number != processor_number):
         for i in range(4):
-            if (cpu2.cache[i][1]==direction):
+            if (cpu2.cache[i][1]==direction and cpu2.cache[i][0]!='I'):
                 cpu2.cache[i][0]='S'
-                return(True,cpu2.cache[i][2])
+                write_to_memory(direction,cpu2.cache[i][2])
+                return True
     if(cpu3.processor_number != processor_number):
         for i in range(4):
-            if (cpu3.cache[i][1]==direction):
+            if (cpu3.cache[i][1]==direction and cpu3.cache[i][0]!='I'):
                 cpu3.cache[i][0]='S'
-                return(True,cpu3.cache[i][2])
+                write_to_memory(direction,cpu3.cache[i][2])
+                return True
 
     return(False,0)
 
@@ -233,14 +228,6 @@ cpu1_thread.start()
 cpu2_thread.start()
 cpu3_thread.start()
 
-#change temporal mode
-def temporal_mode():
-    global paso_a_paso
-    paso_a_paso= not paso_a_paso
-    if (paso_a_paso):
-        mode_button.config(text="Modo ejecución continua")
-    else:
-        mode_button.config(text="Modo paso a paso")
     
 #execute next cicle in "paso a paso" mode
 def execute_next_cicle(e):
@@ -250,6 +237,8 @@ def execute_next_cicle(e):
     cpu3.pressed_next_cicle=True
 
 
+
+
 #return new state
 def MESI(instruction,state):
     if(instruction=="write"):
@@ -257,7 +246,7 @@ def MESI(instruction,state):
         return 'M'
     elif(state=='S' and instruction=='read'):
         return 'S'
-    elif(state=='M' and (instruction=='read' or instruction=='write')):
+    elif(state=='M' and instruction=='read'):
         return 'M'
     elif(state=='M' and instruction=='veo_wr'):
         #writeback
@@ -271,78 +260,53 @@ def MESI(instruction,state):
         return 'E'
     elif(state=='E' and instruction=='read'):
         return 'E'
-    elif(state=='E' and instruction=='veo_read'):
+    elif(state=='E' and instruction=='veo_rd'):
         return 'S'
     elif(state=='E' and instruction=='veo_wr'):
         return 'I'
     else:
         return state
     
-
-    
-    
-    
-    
-
-    
-
+   
 #invalidate blocks
 def invalidate_blocks(processor_number,direction):
     if(cpu0.processor_number != processor_number):
         for i in range(4):
-            if cpu0.cache[i][1]==direction:
+            if (cpu0.cache[i][1]==direction):
                 cpu0.cache[i][0]='I'
                 break
     if(cpu1.processor_number != processor_number):
         for i in range(4):
-            if cpu1.cache[i][1]==direction:
+            if (cpu1.cache[i][1]==direction):
                 cpu1.cache[i][0]='I'
                 break
     if(cpu2.processor_number != processor_number):
         for i in range(4):
-            if cpu2.cache[i][1]==direction:
+            if (cpu2.cache[i][1]==direction):
                 cpu2.cache[i][0]='I'
                 break
     if(cpu3.processor_number != processor_number):
         for i in range(4):
-            if cpu3.cache[i][1]==direction:
+            if (cpu3.cache[i][1]==direction):
                 cpu3.cache[i][0]='I'
                 break
 
     
+#change temporal mode
+def temporal_mode():
+    global paso_a_paso
+    paso_a_paso= not paso_a_paso
+    if (paso_a_paso):
+        mode_button.config(text="Modo ejecución continua")
+    else:
+        mode_button.config(text="Modo paso a paso")
 
 
-    
-
-
-
-####################################################################GUI####################################################################
+########################################################################################GUI#####################################################################
 
 #start tkinter window
 root = Tk()
 
-
-######################################################################
-class Table:
-     
-    def __init__(self,root,data_matrix,width):
-        self.labels=[]
-        self.width=width
-        self.data_matrix=data_matrix
-        # code for creating table
-        for i in range(len(data_matrix)):
-            self.labels.append([])
-            for j in range(len(data_matrix[0])):
-                self.e = Label(root, width=self.width, text=data_matrix[i][j],  borderwidth=2, relief="groove")
-                self.e.grid(row=i, column=j)
-                self.labels[i].append(self.e)
-
-    def update(self):
-        for i in range(len(self.labels)):
-            for j in range(len(self.labels[0])):
-                self.labels[i][j].config(text=self.data_matrix[i][j])
-
-######################################################################  
 
 #position frames of the tables
 
@@ -407,4 +371,3 @@ root.bind('<Return>',execute_next_cicle)
 # Code to add widgets will go here...
 
 root.mainloop()
-
