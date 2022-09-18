@@ -224,10 +224,10 @@ def controller(instruction,processor_number,direction):
 
 #create processor instances
 #number of processor, paso a paso, matrix: state, memory direction, data
-cpu0= Processor(0,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
-cpu1= Processor(1,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
-cpu2= Processor(2,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
-cpu3= Processor(3,False,[['I',0,0],['I',0,0],['I',0,0],['I',0,0]])
+cpu0= Processor(0,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
+cpu1= Processor(1,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
+cpu2= Processor(2,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
+cpu3= Processor(3,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
 
 
 #create processor threads
