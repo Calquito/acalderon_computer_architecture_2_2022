@@ -1,6 +1,6 @@
 #############################################################global variables########################################################
-clock_time=2
-going_to_memory_time=10
+clock_time=1  #1-5 Ghz
+going_to_memory_time=5 #1-2 Mhz
 
 
 #Lists require to be in a matrix to be put on the table
@@ -16,7 +16,7 @@ for i in range(len(cache_matrix)):
 #Main memory
 main_memory_matrix=[[0,0,0,0,0,0,0,0]]
 #Processor and its last instruction
-processor_matrix=[['Procesador 0',''],['Procesador 1',''],['Procesador 2',''],['Procesador 3','']]
+processor_matrix=[['Procesador 0','','',''],['Procesador 1','','',''],['Procesador 2','','',''],['Procesador 3','','','']]
 
 #variables shared by the system
 #Last instruction

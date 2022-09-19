@@ -1,23 +1,30 @@
 from threading import Thread
 import time
 import random
-from config import *
 from tkinter import *
+
+from config import *
 from GUI_Table import Table
+from MESI import MESI
+from memory_instructions import *
 
 #processor class
 
 class Processor:
-    def __init__(self,processor_number,pressed_next_cicle,cache):
+    def __init__(self,processor_number,pressed_next_cicle,cache,current_instruction):
         self.processor_number=processor_number
         self.pressed_next_cicle=pressed_next_cicle
         self.cache=cache
+        self.current_instruction=current_instruction
     
     def write(self,direction,data):
         #check if data is in memory
         write_hit=False
         new_state=''
         hit_block_number=None
+
+        #triggers controller
+        controller('write',self.processor_number,direction)
 
         #one way associative
         if self.cache[direction%4][1]==direction:
@@ -32,13 +39,25 @@ class Processor:
             
         #write miss
         else:
+
+            #using block
+            processor_matrix[self.processor_number][2]=direction
+            processor_matrix[self.processor_number][3]='WRITE MISS'
+            processor_table_GUI.data_matrix=processor_matrix
+            processor_table_GUI.update()
+
             write_to_memory(direction,data)
             #block doesn't exist in cache, so assume I
             new_state=MESI('write','I')
             #one way associative
             self.cache[direction%4]=[new_state,direction,data]
 
-        controller('write',self.processor_number,direction)
+            #not using block
+            processor_matrix[self.processor_number][2]=''
+            processor_matrix[self.processor_number][3]=''
+            processor_table_GUI.data_matrix=processor_matrix
+            processor_table_GUI.update()
+        
 
 
 
@@ -67,6 +86,14 @@ class Processor:
             return True
 
         #fetch from other cache if true, if false go to memory
+
+        #using block
+        processor_matrix[self.processor_number][2]=direction
+        processor_matrix[self.processor_number][3]='READ MISS'
+        processor_table_GUI.data_matrix=processor_matrix
+        processor_table_GUI.update()
+
+
         cache_checked=controller('read',self.processor_number,direction)
         if(cache_checked[0]):
             #veo_rd
@@ -74,6 +101,12 @@ class Processor:
             self.cache[direction%4]=['S',direction,cache_checked[1]]
         else:
             self.cache[direction%4]=['E',direction,read_from_memory(direction)]
+
+        #not using block
+        processor_matrix[self.processor_number][2]=''
+        processor_matrix[self.processor_number][3]=''
+        processor_table_GUI.data_matrix=processor_matrix
+        processor_table_GUI.update()
 
 
 
@@ -117,16 +150,17 @@ class Processor:
         instruction_p=random.randint(0,100)
         self.current_instruction= 'P'+str(self.processor_number)+':'
 
+
+        #Distribucion uniforme discreta
+
         #CALC
         if(instruction_p<33):
             self.current_instruction+= "CALC"
-            self.calc()
         #READ
         elif(instruction_p<66):
             read_direction=random.randint(0,7)
             read_direction_binary=bin(read_direction)
             self.current_instruction+= " READ "+read_direction_binary
-            self.read(read_direction)
 
         #WRITE
         else:
@@ -137,9 +171,19 @@ class Processor:
             data_hex=hex(data)
             #remove 0b and 0x
             self.current_instruction+= " WRITE "+write_direction_binary+" ; "+ data_hex
-            self.write(write_direction,data)
 
         self.update_GUI_after_instruction()
+
+        #CALC
+        if(instruction_p<33):
+            self.calc()
+        #READ
+        elif(instruction_p<66):
+            self.read(read_direction)
+
+        #WRITE
+        else:
+            self.write(write_direction,data)
 
         #recursive
         while(paso_a_paso):
@@ -150,31 +194,7 @@ class Processor:
         self.generate_instruction()
 
 
-def read_from_memory(direction):
-    global using_memory_bus
-    #waits for the bus to be free
-    while(using_memory_bus):
-        time.sleep(1)
-        pass
-    #now memory bus is free
-    using_memory_bus=True
-    data=''
-    time.sleep(going_to_memory_time)
-    data=main_memory_matrix[0][direction]
-    using_memory_bus=False
-    return data
 
-def write_to_memory(direction,data):
-    global using_memory_bus
-    #waits for the bus to be free
-    while(using_memory_bus):
-        time.sleep(1)
-        pass
-    #now memory bus is free
-    using_memory_bus=True
-    time.sleep(going_to_memory_time)
-    main_memory_matrix[0][direction]=data
-    using_memory_bus=False
 
 
 def check_caches_read(processor_number,direction):
@@ -224,10 +244,10 @@ def controller(instruction,processor_number,direction):
 
 #create processor instances
 #number of processor, paso a paso, matrix: state, memory direction, data
-cpu0= Processor(0,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
-cpu1= Processor(1,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
-cpu2= Processor(2,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
-cpu3= Processor(3,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]])
+cpu0= Processor(0,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
+cpu1= Processor(1,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
+cpu2= Processor(2,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
+cpu3= Processor(3,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
 
 
 #create processor threads
@@ -250,39 +270,6 @@ def execute_next_cicle(e):
     cpu2.pressed_next_cicle=True
     cpu3.pressed_next_cicle=True
 
-
-
-
-#return new state
-def MESI(instruction,state):
-    if(instruction=="write"):
-        #all states return to M in write
-        return 'M'
-    elif(state=='S' and instruction=='read'):
-        return 'S'
-    elif(state=='M' and instruction=='read'):
-        return 'M'
-    elif(state=='M' and instruction=='veo_wr'):
-        #writeback
-        return 'I'
-    elif(state=='M' and instruction=='veo_rd'):
-        #writeback
-        return 'S'
-    elif (state=='S' and instruction=='veo_wr'):
-        return 'I'
-    elif(state=='I' and instruction=='read'):
-        return 'E'
-    elif(state=='E' and instruction=='read'):
-        return 'E'
-    elif(state=='I' and instruction=='veo_rd'):
-        return 'S'
-    elif(state=='E' and instruction=='veo_rd'):
-        return 'S'
-    elif(state=='E' and instruction=='veo_wr'):
-        return 'I'
-    else:
-        return state
-    
    
 #invalidate blocks
 #processor number is the processor that is invalidating
@@ -335,12 +322,16 @@ frame_labels1 = Frame(frame_processor_cache)
 frame_labels1 .pack(side=TOP)
 label1=Label(frame_labels1 , width=20, text='Procesador')
 label2=Label(frame_labels1 , width=20, text='Última instrucción')
+label11=Label(frame_labels1 , width=20, text='Bloque de memoria')
+label12=Label(frame_labels1 , width=20, text='Alerta Miss')
 label3=Label(frame_labels1 , width=20, text='Bloque 0')
 label4=Label(frame_labels1 , width=20, text='Bloque 1')
 label5=Label(frame_labels1 , width=20, text='Bloque 2')
 label6=Label(frame_labels1 , width=20, text='Bloque 3')
 label1.pack(side = LEFT)
 label2.pack(side = LEFT)
+label11.pack(side = LEFT)
+label12.pack(side = LEFT)
 label3.pack(side = LEFT)
 label4.pack(side = LEFT)
 label5.pack(side = LEFT)
@@ -359,6 +350,7 @@ frame_main_instruction.pack()
 
 label7=Label(frame_main_instruction , text='Memoria principal')
 label7.pack(pady=5)
+
 
 frame_main= Frame(frame_main_instruction)
 frame_main.pack()
@@ -379,7 +371,7 @@ mode_button.pack(pady=5,padx=5,side=RIGHT)
 #create tables in frames
 cache_table_GUI = Table(frame_cache,cache_matrix,20)
 processor_table_GUI = Table(frame_procesador,processor_matrix,20)
-main_memory_table_GUI= Table(frame_main,main_memory_matrix,15)
+main_memory_table_GUI= Table(frame_main,main_memory_matrix,20)
 
 #When enter pressed, change cicle
 
