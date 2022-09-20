@@ -1,6 +1,6 @@
 #############################################################global variables########################################################
-clock_time=1  #1-5 Ghz
-going_to_memory_time=5 #1-2 Mhz
+clock_time=1  
+going_to_memory_time=5 
 
 
 #Lists require to be in a matrix to be put on the table
@@ -11,7 +11,8 @@ cache_matrix=[['','','',''],['','','',''],['','','',''],['','','','']]
 #fills cache with initial states
 for i in range(len(cache_matrix)):
     for j in range(len(cache_matrix[0])):
-        cache_matrix[i][j]='I   |   '+str(j)+'   |   0'
+        #cache_matrix[i][j]='I   |   '+str(j)+'   |   0'
+        cache_matrix[i][j]='I   |   0   |   0'
 
 #Main memory
 main_memory_matrix=[[0,0,0,0,0,0,0,0]]

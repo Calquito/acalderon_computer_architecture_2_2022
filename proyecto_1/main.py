@@ -2,6 +2,7 @@ from threading import Thread
 import time
 import random
 from tkinter import *
+from tkinter import messagebox
 
 from config import *
 from GUI_Table import Table
@@ -11,11 +12,12 @@ from memory_instructions import *
 #processor class
 
 class Processor:
-    def __init__(self,processor_number,pressed_next_cicle,cache,current_instruction):
+    def __init__(self,processor_number,pressed_next_cicle,cache,current_instruction,instruction_entered):
         self.processor_number=processor_number
         self.pressed_next_cicle=pressed_next_cicle
         self.cache=cache
         self.current_instruction=current_instruction
+        self.instruction_entered=instruction_entered
     
     def write(self,direction,data):
         #check if data is in memory
@@ -24,7 +26,7 @@ class Processor:
         hit_block_number=None
 
         #triggers controller
-        controller('write',self.processor_number,direction)
+        self.controller('write',direction)
 
         #one way associative
         if self.cache[direction%4][1]==direction:
@@ -94,7 +96,7 @@ class Processor:
         processor_table_GUI.update()
 
 
-        cache_checked=controller('read',self.processor_number,direction)
+        cache_checked=self.controller('read',direction)
         if(cache_checked[0]):
             #veo_rd
             #transition 9
@@ -140,14 +142,57 @@ class Processor:
         label9.config(text='Última instrucción generada por el sistema:'+last_instruction)
 
 
+    def controller(self,instruction,direction):
+        if(instruction=='write'):
+            #veo_wr
+            #transition 4
+            #transition 7
+            #transition 8
+            invalidate_blocks(self.processor_number,direction)
+            return None
+        elif(instruction=='read'):
+            #veo_rd
+            #transition 5
+            return check_caches_read(self.processor_number,direction)
+        else:
+            return None
+
+    def parse_instruction(self):
+        if (self.current_instruction.find('CALC')!=-1):
+            self.update_GUI_after_instruction()
+            self.calc()
+        elif (self.current_instruction.find('READ')!=-1):
+            self.update_GUI_after_instruction()
+            self.read(int(self.current_instruction[10:],2))
+        elif (self.current_instruction.find('WRITE')!=-1):
+            self.update_GUI_after_instruction()
+            self.write(int(self.current_instruction[11:15],2),int(self.current_instruction[16:],16))
+        else:
+            messagebox.showwarning(title=None, message='Instrucción no válida') 
+
+
     def generate_instruction(self):
         #Clock cicle
         if not paso_a_paso:
             time.sleep(clock_time)
         self.pressed_next_cicle=False
 
+        #recursive
+        while(paso_a_paso):
+            #avoid infinite loop to take resources
+            time.sleep(1)
+            if(self.pressed_next_cicle):
+                break
+
         #generate random instruction
         instruction_p=random.randint(0,100)
+
+        if(self.instruction_entered):
+            self.instruction_entered=False
+            print('llamo')
+            self.parse_instruction()
+            self.generate_instruction()
+
         self.current_instruction= 'P'+str(self.processor_number)+':'
 
 
@@ -185,12 +230,6 @@ class Processor:
         else:
             self.write(write_direction,data)
 
-        #recursive
-        while(paso_a_paso):
-            #avoid infinite loop to take resources
-            time.sleep(1)
-            if(self.pressed_next_cicle):
-                break
         self.generate_instruction()
 
 
@@ -224,30 +263,14 @@ def check_caches_read(processor_number,direction):
     return(False,0)
 
 
-def controller(instruction,processor_number,direction):
-    if(instruction=='write'):
-        #veo_wr
-        #transition 4
-        #transition 7
-        #transition 8
-        invalidate_blocks(processor_number,direction)
-        return None
-    elif(instruction=='read'):
-        #veo_rd
-        #transition 5
-        return check_caches_read(processor_number,direction)
-    else:
-        return None
+
             
-
-
-
 #create processor instances
 #number of processor, paso a paso, matrix: state, memory direction, data
-cpu0= Processor(0,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
-cpu1= Processor(1,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
-cpu2= Processor(2,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
-cpu3= Processor(3,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'')
+cpu0= Processor(0,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'',False)
+cpu1= Processor(1,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'',False)
+cpu2= Processor(2,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'',False)
+cpu3= Processor(3,False,[['I',0,0],['I',1,0],['I',2,0],['I',3,0]],'',False)
 
 
 #create processor threads
@@ -304,6 +327,26 @@ def temporal_mode():
         mode_button.config(text="Modo ejecución continua")
     else:
         mode_button.config(text="Modo paso a paso")
+
+def entered_instruction(instruction):
+    if (not paso_a_paso):
+        messagebox.showwarning(title=None, message='Solo se puede ingresar una instrucción en modo paso a paso')
+    else:
+        if instruction[1]=='0':
+            cpu0.instruction_entered=True
+            cpu0.current_instruction=instruction
+        elif instruction[1]=='1':
+            cpu1.instruction_entered=True
+            cpu1.current_instruction=instruction
+        elif instruction[1]=='2':
+            cpu2.instruction_entered=True
+            cpu2.current_instruction=instruction
+        elif instruction[1]=='3':
+            cpu3.instruction_entered=True
+            cpu3.current_instruction=instruction
+        else:
+           messagebox.showwarning(title=None, message='Instrucción no válida') 
+            
 
 
 ########################################################################################GUI#####################################################################
@@ -366,6 +409,16 @@ label9.pack(pady=5,side=LEFT)
 #mode button
 mode_button=Button(frame_main_instruction, text= "Modo paso a paso", command=temporal_mode,width=20)
 mode_button.pack(pady=5,padx=5,side=RIGHT)
+
+#introduce instruction
+
+button_entry_instruction = Button(frame_main_instruction, text="Ingresar_instrucción", command=lambda: entered_instruction(entry_instruction.get()))
+button_entry_instruction.pack(pady=5,padx=5,side=RIGHT)
+
+
+entry_instruction = Entry(frame_main_instruction)
+entry_instruction.pack(pady=5,padx=5,side=RIGHT)
+
 
 
 #create tables in frames
