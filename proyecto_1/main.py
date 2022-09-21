@@ -205,7 +205,7 @@ class Processor:
         elif(instruction_p<66):
             read_direction=random.randint(0,7)
             read_direction_binary=bin(read_direction)
-            self.current_instruction+= " READ "+read_direction_binary
+            self.current_instruction+= " READ "+read_direction_binary[2:]
 
         #WRITE
         else:
@@ -215,7 +215,7 @@ class Processor:
             data=random.randint(0,65536)
             data_hex=hex(data)
             #remove 0b and 0x
-            self.current_instruction+= " WRITE "+write_direction_binary+" ; "+ data_hex
+            self.current_instruction+= " WRITE "+write_direction_binary[2:]+" ; "+ data_hex[2:]
 
         self.update_GUI_after_instruction()
 
